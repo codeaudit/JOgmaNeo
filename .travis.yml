@@ -1,0 +1,68 @@
+# JOgmaNeo
+# Copyright(c) 2016 Ogma Intelligent Systems Corp. All rights reserved.
+#
+# This copy of JOgmaNeo is licensed to you under the terms described
+# in the JOGMANEO_LICENSE.md file included in this distribution.
+
+language: java
+
+sudo: required
+dist: trusty
+
+matrix:
+  include:
+  # https://docs.travis-ci.com/user/trusty-ci-environment/
+  # Ubuntu 14.04 Trusty Tahr
+  - os: linux
+    dist: trusty
+
+  # https://docs.travis-ci.com/user/osx-ci-environment/
+  # OS X 10.11.6 (and Xcode 7.3.1)
+  # Default osx_image: xcode7.3
+  - os: osx
+    language: generic
+
+cache:
+  directories:
+    - $HOME/.local
+
+before_install:
+  # Install dependencies into $HOME/.local
+  - bash ./.travis/install_deps.sh
+  
+install:
+  # Install CMake v3.6 into $HOME/.local
+  - bash ./.travis/install_cmake.sh
+
+  # Install OpenCL (Linux - POCL driver, release_0_13)
+  - bash ./.travis/install_opencl.sh
+
+  # Install SWIG into $HOME/.local
+  - bash ./.travis/install_swig.sh
+  
+script:
+  - if [ $TRAVIS_OS_NAME == 'linux' ]; then
+      export CC=gcc-4.8;
+      export CXX=g++-4.8;
+    fi
+
+  - echo Travis OS Name ... ${TRAVIS_OS_NAME}
+  - echo Travis build dir ... ${TRAVIS_BUILD_DIR}
+  - echo PATH var ... ${PATH}
+
+  - echo CMake Version ... $($HOME/.local/cmake/bin/cmake --version)
+  - echo SWIG Version ... $(swig -version)
+
+  - mkdir build; cd build;
+  - $HOME/.local/cmake/bin/cmake ..
+  - make
+
+  - javac -cp JOgmaNeo.jar ../src/com/ogmacorp/Example.java -d .
+  - java -cp JOgmaNeo.jar:. -Djava.library.path=. Example 0
+
+notifications:
+  email:
+    recipients:
+      - rcrowder@ogmacorp.com
+    on_success: change
+    on_failure: always
